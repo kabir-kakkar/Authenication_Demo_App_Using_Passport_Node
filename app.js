@@ -26,11 +26,15 @@ app.use (require("express-session")({
 //Including body-parser so we can access the data in the form using req.body.(name)
 app.use (bodyParser.urlencoded({extended: true}));
 
+// We are creating a new local strategy using the User.authenticate method that is coming from
+// models/user.js. (plugin passportLocalMongoose)
+passport.use(new LocalStrategy(User.authenticate()));
 // They are responsible for reading the session, taking the data from the session,
 // Encode it - SerailizeUser
 // And Decode it - DeserializeUser
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser (User.deserializeUser());
+
 
 // ======================
 // ROUTES
@@ -71,6 +75,23 @@ app.post ("/register", function(req, res){
             res.redirect("/secret");
         });
     });
+});
+
+
+//LOGIN ROUTES
+// render login form
+app.get ("/login", function(req, res){
+    res.render("login.ejs");
+});
+// Login Logic
+// Passport.autheticate is actually the middleware here.
+// It is the code before it runs the final callback
+// autheticate method checks the credentials 
+app.post ("/login", passport.authenticate("local", {
+        successRedirect: "/secret",
+        failureRedirect: "/login"
+    }), function (req, res){
+        
 });
 
 app.listen(3000, function(){
