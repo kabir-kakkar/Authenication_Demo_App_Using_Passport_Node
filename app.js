@@ -15,14 +15,17 @@ mongoose.connect('mongodb://localhost:27017/auth_demo_app', {
 .catch(error => console.log(error.message));
 
 app.set ('view engine', 'ejs');
-// Initializing passport session
-app.use (passport.initialize());
-app.use (passport.session());
+// This code should always come before app.use (passport.initialize()) and session
+// Else the code will break and you will not be able to log in
 app.use (require("express-session")({
     secret: "Wingardium Leviosa",
     resave: false,
     saveUninitialized: false
 }));
+// Initializing passport session
+app.use (passport.initialize());
+app.use (passport.session());
+
 //Including body-parser so we can access the data in the form using req.body.(name)
 app.use (bodyParser.urlencoded({extended: true}));
 
@@ -44,7 +47,12 @@ app.get("/", function(req, res){
     res.render("home.ejs");
 });
 
-app.get("/secret", function(req, res){
+// isLoggedIn is the middleware that we wrote out on our own. (see at bottom)
+// therefore, whenever a user goes out to "/secret", out middleware isLoggedIn 
+// checks if the user is logged in or not.
+// if he is not logged in, then he will be redirected to the home page.
+// if he is logged in, he will then be shown the secret page/
+app.get("/secret", isLoggedIn, function(req, res){
     res.render("secret.ejs");
 });
 
@@ -93,6 +101,25 @@ app.post ("/login", passport.authenticate("local", {
     }), function (req, res){
         
 });
+
+//Logout Logic
+app.get("/logout", function(req, res){
+    // HERE PASSPORT IS DESTROYING ALL THE USER DATA IN THE CURRENT SESSION
+    req.logout();
+
+    res.redirect("/");
+});
+
+// WRITE OUR OWN MIDDLEWARE
+// this function checks if the user is Authenticated (logged in)
+// if he is logged in, then the next() function takes place which refers to 
+// the callback function which will come afterwards
+function isLoggedIn(req, res, next){
+    if (req.isAuthenticated()){
+        return next();
+    } 
+    res.redirect("/login");
+}
 
 app.listen(3000, function(){
     console.log("The Server has started!");
